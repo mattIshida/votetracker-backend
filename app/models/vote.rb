@@ -20,10 +20,27 @@ class Vote < ApplicationRecord
         return self.nomination if self.votable_type == 'Nomination'
     end
 
-    def vote_count party, position
+    def party_summary party=nil
+        return tabulate(self.positions) unless party
+        tabulate(self.positions.filter {|p| p.party == party})
     end
 
-    def majority_position party=nil
-      
+    def summary
+        summary_hsh = Hash.new
+        for p in self.positions.map(&:party).uniq do
+            summary_hsh[p] = party_summary p
+        end
+        summary_hsh["Total"] = party_summary
+        summary_hsh
+    end
+ 
+
+    def tabulate arr
+        tab = Hash.new
+        arr.each do |x|
+            tab[x.vote_position] = 0 unless tab.has_key?(x.vote_position)
+            tab[x.vote_position] += 1
+        end
+        tab
     end
 end

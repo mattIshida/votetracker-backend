@@ -4,6 +4,7 @@ class CreatePositions < ActiveRecord::Migration[7.0]
       t.string :member_id
       t.string :vote_id
       t.string :vote_position
+      t.string :party
       t.timestamps
     end
   end

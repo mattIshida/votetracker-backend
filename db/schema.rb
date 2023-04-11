@@ -56,6 +56,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_04_11_191743) do
     t.string "member_id"
     t.string "vote_id"
     t.string "vote_position"
+    t.string "party"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
@@ -84,10 +85,11 @@ ActiveRecord::Schema[7.0].define(version: 2023_04_11_191743) do
     t.string "votable_type"
     t.string "votable_id"
     t.string "question"
+    t.string "question_text"
     t.string "description"
     t.string "vote_type"
     t.date "date"
-    t.time "time"
+    t.string "time"
     t.string "result"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

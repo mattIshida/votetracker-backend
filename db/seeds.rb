@@ -70,7 +70,8 @@ for v in Vote.all do
         Position.create(
             member_id: p["member_id"],
             vote_id: v.id, 
-            vote_position: p["vote_position"]
+            vote_position: p["vote_position"],
+            party: p["party"]
         )
     end
 end
