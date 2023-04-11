@@ -1,0 +1,2 @@
+class NominationsController < ApplicationController
+end

@@ -4,5 +4,5 @@ class MembersController < ApplicationController
         members = Member.all
         render json: members, Serializer: MemberSerializer
     end
-    
+
 end

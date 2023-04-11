@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  resources :nominations
   resources :tags
   resources :subjects
   resources :bills
