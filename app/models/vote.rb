@@ -36,10 +36,11 @@ class Vote < ApplicationRecord
  
 
     def tabulate arr
-        tab = Hash.new
+        tab = {"Total"=>0}
         arr.each do |x|
             tab[x.vote_position] = 0 unless tab.has_key?(x.vote_position)
             tab[x.vote_position] += 1
+            tab["Total"] += 1
         end
         tab
     end
