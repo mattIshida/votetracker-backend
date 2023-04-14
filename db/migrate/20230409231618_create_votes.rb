@@ -13,7 +13,7 @@ class CreateVotes < ActiveRecord::Migration[7.0]
       t.string :question_text
       t.string :description
       t.string :vote_type
-      t.date :date
+      t.string :date
       t.string :time
       t.string :result
       t.timestamps

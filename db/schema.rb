@@ -38,6 +38,8 @@ ActiveRecord::Schema[7.0].define(version: 2023_04_11_191743) do
     t.string "short_title"
     t.string "party"
     t.boolean "in_office"
+    t.string "state"
+    t.string "district"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
@@ -88,7 +90,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_04_11_191743) do
     t.string "question_text"
     t.string "description"
     t.string "vote_type"
-    t.date "date"
+    t.string "date"
     t.string "time"
     t.string "result"
     t.datetime "created_at", null: false

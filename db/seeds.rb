@@ -32,14 +32,14 @@ def fetch_members chamber, congress
 end
 
 #fetch_members('house', 118).each {|h| create_instance(Member, h)}
-fetch_members('senate', 118).each {|h| create_instance(Member, h)}
+fetch_members('house', 118).each {|h| create_instance(Member, h)}
 
 
 puts 'Seeding votes....'
 def fetch_votes chamber, yyyy, mm
     url = "https://api.propublica.org/congress/v1/#{chamber}/votes/#{yyyy}/#{"%02d" % mm}.json"
     fetch_json(url)['results']['votes']
-    .map {|h| h.merge({"id" => "#{h["chamber"]}-#{h["congress"]}-#{h["session"]}-#{h["roll_call"]}"})}
+    .map {|h| h.merge({"id" => "#{h["chamber"]}-#{h["congress"]}-#{h["session"]}-#{h["roll_call"].to_s.rjust(4,"0")}"})}
     .map do|h|
             if h.has_key?("bill")
                 if !h["bill"].empty?
@@ -55,7 +55,7 @@ def fetch_votes chamber, yyyy, mm
 end
 
 #fetch_votes('house', 2023, 4).each {|h| create_instance(Vote, h)}
-fetch_votes('senate', 2023, 3).each {|h| create_instance(Vote, h)}
+fetch_votes('house', 2023, 1).each {|h| create_instance(Vote, h)}
 
 
 
@@ -79,9 +79,10 @@ end
 
 puts 'Seeding votables...'
 def fetch_bill congress, bill_id
+    puts bill_id
     bill_slug = /^.*(?=-)/.match(bill_id)[0]
     url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_slug}.json"
-    fetch_json(url)['results'].map {|h| h.merge({"id" => h["bill_id"]})}[0]
+    fetch_json(url)['results']&.map {|h| h.merge({"id" => h["bill_id"]})}[0]
 end 
 
 def fetch_nomination congress, nomination_id
@@ -95,9 +96,9 @@ def fetch_nomination congress, nomination_id
 end
 
 for v in Vote.all do
-    if v.votable_type == 'Bill'
+    if v.votable_type == 'Bill' && v.votable_id.match?(/quorum|adjourn/i)== false
         h = fetch_bill(v.congress, v.votable_id)
-        create_instance(Bill, h) unless Bill.find_by(id: v.votable_id)
+        create_instance(Bill, h) unless Bill.find_by(id: v.votable_id) if h
     elsif v.votable_type == 'Nomination'
         h = fetch_nomination(v.congress, v.votable_id)
         if h

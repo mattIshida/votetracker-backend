@@ -1,8 +1,17 @@
 class MemberSerializer < ActiveModel::Serializer
-  attributes :id, :first_name, :last_name, :short_title, :party, :congress, :positions
+  attributes :id, :first_name, :last_name, :short_title, :party, :congress, :positions, :state, :district
 
   def positions
-    object.positions.order(vote_id: :desc).select([:id, :vote_position])
+    paginated_positions = object.positions.order(vote_id: :desc).select([:id, :vote_position, :vote_id]).paginate(page: @instance_options[:page], per_page: @instance_options[:per_page])
+    total_pages = paginated_positions.total_pages
+    current_page = paginated_positions.current_page
+    
+    {
+      positions: paginated_positions,
+      total_pages: total_pages, 
+      current_page: current_page
+    }
+    #limit(@instance_options[:per_page]).offset(@instance_options[:offset])
   end
 
   #has_many :positions, scope: Proc.new { |a| a.order(id: :desc) }#, serializer: PositionSerializer
