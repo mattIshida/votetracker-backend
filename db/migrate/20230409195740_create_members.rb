@@ -9,6 +9,8 @@ class CreateMembers < ActiveRecord::Migration[7.0]
       t.string :short_title
       t.string :party
       t.boolean :in_office
+      t.string :state
+      t.string :district
       t.timestamps
     end
   end

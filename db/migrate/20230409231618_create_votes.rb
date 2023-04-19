@@ -7,12 +7,15 @@ class CreateVotes < ActiveRecord::Migration[7.0]
       t.integer :session
       t.integer :roll_call
       t.string :vote_uri
-      t.string :votable_type
-      t.string :votable_id
+      t.string :votable_type, polymorphic: true
+      t.string :votable_id, polymorphic: true
       t.string :question
+      t.string :question_text
       t.string :description
       t.string :vote_type
       t.string :date
+      t.string :year
+      t.string :month
       t.string :time
       t.string :result
       t.timestamps

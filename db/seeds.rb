@@ -11,6 +11,7 @@ Position.destroy_all
 Bill.destroy_all
 Subject.destroy_all
 Tag.destroy_all
+Nomination.destroy_all
 
 API_KEY = Rails.application.credentials.propublica[:api_key]
 
@@ -24,32 +25,34 @@ def create_instance model, hsh
     model.create(hsh.filter {|k, _| keys_needed.include?(k)})
 end
 
-
-
-# Seed legislators
 puts 'Seeding members....'
 def fetch_members chamber, congress
     url = "https://api.propublica.org/congress/v1/#{congress}/#{chamber}/members.json"
     fetch_json(url)["results"].first["members"].map {|h| h.merge({"chamber" => chamber, "congress" => congress})}
 end
 
+#fetch_members('house', 118).each {|h| create_instance(Member, h)}
 fetch_members('house', 118).each {|h| create_instance(Member, h)}
-fetch_members('senate', 118).each {|h| create_instance(Member, h)}
 
 
 puts 'Seeding votes....'
 def fetch_votes chamber, yyyy, mm
     url = "https://api.propublica.org/congress/v1/#{chamber}/votes/#{yyyy}/#{"%02d" % mm}.json"
     fetch_json(url)['results']['votes']
-    .map {|h| h.merge({"id" => "#{h["chamber"]}-#{h["congress"]}-#{h["session"]}-#{h["roll_call"]}"})}
+    .map {|h| h.merge({
+        "id" => "#{h["chamber"]}-#{h["congress"]}-#{h["session"]}-#{h["roll_call"].to_s.rjust(4,"0")}", 
+        "year"=> /^[0-9]{4}/.match(h["date"]).to_s, 
+        "month"=>/(?<=-)[0-9]{2}(?=-)/.match(h['date']).to_s
+        }
+    )}
     .map do|h|
             if h.has_key?("bill")
                 if !h["bill"].empty?
-                    h["votable_type"] = 'bill'
+                    h["votable_type"] = 'Bill'
                     h["votable_id"] = h["bill"]["bill_id"]
                 elsif /PN[0-9]*$/.match(h["question_text"])
-                    h["votable_type"] = 'nomination'
-                    h["votable_id"] = /PN[0-9]*$/.match(h["question_text"])
+                    h["votable_type"] = 'Nomination'
+                    h["votable_id"] = /PN[0-9]*$/.match(h["question_text"]).to_s
                 end   
             end
             h
@@ -57,7 +60,8 @@ def fetch_votes chamber, yyyy, mm
 end
 
 fetch_votes('house', 2023, 3).each {|h| create_instance(Vote, h)}
-fetch_votes('senate', 2023, 3).each {|h| create_instance(Vote, h)}
+fetch_votes('house', 2023, 2).each {|h| create_instance(Vote, h)}
+#fetch_votes('house', 2023, 1).each {|h| create_instance(Vote, h)}
 
 
 
@@ -68,27 +72,51 @@ def fetch_positions chamber, congress, session, roll_call
 end
 
 for v in Vote.all do
-    fetch_positions(v.chamber, v.congress, v.session, v.roll_call).each do |p|
+    positions = fetch_positions(v.chamber, v.congress, v.session, v.roll_call)
+    if positions.length == 0 
+        v.destroy
+    else 
+        positions.each do |p|
         Position.create(
             member_id: p["member_id"],
             vote_id: v.id, 
-            vote_position: p["vote_position"]
+            vote_position: p["vote_position"],
+            party: p["party"]
         )
+        end
     end
 end
 
 
-puts 'Seeding bills...'
+puts 'Seeding votables...'
 def fetch_bill congress, bill_id
+    puts bill_id
     bill_slug = /^.*(?=-)/.match(bill_id)[0]
-    url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_slug}"
-    fetch_json(url)['results'].map {|h| h.merge({"id" => h["bill_id"]})}
+    url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_slug}.json"
+    fetch_json(url)['results']&.map {|h| h.merge({"id" => h["bill_id"]})}[0]
 end 
 
-for v in Vote.where(votable_type: 'bill') do
-    fetch_bill(v.congress, v.votable_id).each {|h| create_instance(Bill, h)} unless Bill.find_by(id: v.votable_id)
+def fetch_nomination congress, nomination_id
+    url = "https://api.propublica.org/congress/v1/#{congress}/nominees/#{nomination_id}.json"
+    pp url
+    begin
+        return fetch_json(url)['results'][0]
+    rescue
+        return nil
+    end
 end
 
+for v in Vote.all do
+    if v.votable_type == 'Bill' && v.votable_id.match?(/quorum|adjourn/i)== false
+        h = fetch_bill(v.congress, v.votable_id)
+        create_instance(Bill, h) unless Bill.find_by(id: v.votable_id) if h
+    elsif v.votable_type == 'Nomination'
+        h = fetch_nomination(v.congress, v.votable_id)
+        if h
+            create_instance(Nomination, h) unless Nomination.find_by(id: v.votable_id)
+        end
+    end
+end
 
 puts 'Seeding subjects...'
 def fetch_subjects bill_id
