@@ -39,7 +39,12 @@ puts 'Seeding votes....'
 def fetch_votes chamber, yyyy, mm
     url = "https://api.propublica.org/congress/v1/#{chamber}/votes/#{yyyy}/#{"%02d" % mm}.json"
     fetch_json(url)['results']['votes']
-    .map {|h| h.merge({"id" => "#{h["chamber"]}-#{h["congress"]}-#{h["session"]}-#{h["roll_call"].to_s.rjust(4,"0")}"})}
+    .map {|h| h.merge({
+        "id" => "#{h["chamber"]}-#{h["congress"]}-#{h["session"]}-#{h["roll_call"].to_s.rjust(4,"0")}", 
+        "year"=> /^[0-9]{4}/.match(h["date"]).to_s, 
+        "month"=>/(?<=-)[0-9]{2}(?=-)/.match(h['date']).to_s
+        }
+    )}
     .map do|h|
             if h.has_key?("bill")
                 if !h["bill"].empty?
@@ -54,8 +59,9 @@ def fetch_votes chamber, yyyy, mm
         end
 end
 
-#fetch_votes('house', 2023, 4).each {|h| create_instance(Vote, h)}
-fetch_votes('house', 2023, 1).each {|h| create_instance(Vote, h)}
+fetch_votes('house', 2023, 3).each {|h| create_instance(Vote, h)}
+fetch_votes('house', 2023, 2).each {|h| create_instance(Vote, h)}
+#fetch_votes('house', 2023, 1).each {|h| create_instance(Vote, h)}
 
 
 
@@ -66,13 +72,18 @@ def fetch_positions chamber, congress, session, roll_call
 end
 
 for v in Vote.all do
-    fetch_positions(v.chamber, v.congress, v.session, v.roll_call).each do |p|
+    positions = fetch_positions(v.chamber, v.congress, v.session, v.roll_call)
+    if positions.length == 0 
+        v.destroy
+    else 
+        positions.each do |p|
         Position.create(
             member_id: p["member_id"],
             vote_id: v.id, 
             vote_position: p["vote_position"],
             party: p["party"]
         )
+        end
     end
 end
 

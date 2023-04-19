@@ -91,6 +91,8 @@ ActiveRecord::Schema[7.0].define(version: 2023_04_11_191743) do
     t.string "description"
     t.string "vote_type"
     t.string "date"
+    t.string "year"
+    t.string "month"
     t.string "time"
     t.string "result"
     t.datetime "created_at", null: false

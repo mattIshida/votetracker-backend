@@ -14,6 +14,8 @@ class CreateVotes < ActiveRecord::Migration[7.0]
       t.string :description
       t.string :vote_type
       t.string :date
+      t.string :year
+      t.string :month
       t.string :time
       t.string :result
       t.timestamps
