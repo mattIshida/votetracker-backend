@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
   backend:
     build: .
@@ -14,21 +14,37 @@ services:
       POSTGRES_DB: votetracker_backend_development
     depends_on:
       - db
-  # frontend:
-  #   build: ./client
-  #   ports:
-  #     - '3001:3000'
-  #   volumes:
-  #     - ./client:/app
-  #   environment:
-  #     NODE_ENV: development
-  #   depends_on:
-  #     - backend
+    networks:
+      - my_network
+      - private
+    expose:
+      - 9292
+  frontend:
+    build: ../votetracker
+    ports:
+      - '3000:3000'
+    # volumes:
+    #   - ../votetracker:/app
+    environment:
+      NODE_ENV: production
+    # extra_hosts:
+    #   - "localhost:127.0.0.1"
+    depends_on:
+      - backend
+    networks:
+      - my_network
   db:
     image: postgres:latest
     volumes:
-      - /usr/local/share/postgresql@14:/var/lib/postgresql/data
+      - votetracker-postgresql:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: votetracker_backend_development
+    networks: 
+      - private
+volumes: 
+  votetracker-postgresql: 
+networks:
+  my_network:
+  private:
