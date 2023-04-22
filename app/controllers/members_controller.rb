@@ -30,6 +30,8 @@ class MembersController < ApplicationController
         congress = (year.to_i - 1787)/2
 
         @members = Member.where(congress: congress, chamber: chamber)
+        response.headers['Content-Type'] = 'text/html'
+
         render json: @members, Serializer: MemberSerializer, page: page, per_page: per_page, year: year, month: month
     end
 
