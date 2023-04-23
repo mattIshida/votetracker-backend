@@ -32,7 +32,7 @@ def fetch_members chamber, congress
 end
 
 #fetch_members('house', 118).each {|h| create_instance(Member, h)}
-fetch_members('house', 118).each {|h| create_instance(Member, h)}
+#fetch_members('house', 118).each {|h| create_instance(Member, h)}
 
 
 puts 'Seeding votes....'
@@ -59,10 +59,30 @@ def fetch_votes chamber, yyyy, mm
         end
 end
 
-fetch_votes('house', 2023, 3).each {|h| create_instance(Vote, h)}
-fetch_votes('house', 2023, 2).each {|h| create_instance(Vote, h)}
+
+#fetch_members('house', 118).each {|h| create_instance(Member, h)}
+#fetch_votes('house', 2023, 3).each {|h| create_instance(Vote, h)}
+#fetch_votes('house', 2023, 2).each {|h| create_instance(Vote, h)}
 #fetch_votes('house', 2023, 1).each {|h| create_instance(Vote, h)}
 
+Time.zone = "America/New_York"
+current_time_in_dc = Time.now.in_time_zone
+
+current_month = 2 #current_time_in_dc.month
+current_year = current_time_in_dc.year
+current_congress = (current_year - 1787)/2
+current_session = current_year % 2 == 1 ? 1 : 2
+
+['house', 'senate'].each do |c|
+    
+    puts "Seeding #{c}"
+    fetch_members(c, current_congress).each {|h| create_instance(Member, h)}
+
+    (1..current_month).each do |m|
+        puts "Seeding votes for month #{m}"
+        fetch_votes(c, current_year, m).each {|h| create_instance(Vote, h)}
+    end
+end
 
 
 puts 'Seeding positions....'
@@ -88,54 +108,54 @@ for v in Vote.all do
 end
 
 
-puts 'Seeding votables...'
-def fetch_bill congress, bill_id
-    puts bill_id
-    bill_slug = /^.*(?=-)/.match(bill_id)[0]
-    url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_slug}.json"
-    fetch_json(url)['results']&.map {|h| h.merge({"id" => h["bill_id"]})}[0]
-end 
+# puts 'Seeding votables...'
+# def fetch_bill congress, bill_id
+#     puts bill_id
+#     bill_slug = /^.*(?=-)/.match(bill_id)[0]
+#     url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_slug}.json"
+#     fetch_json(url)['results']&.map {|h| h.merge({"id" => h["bill_id"]})}[0]
+# end 
 
-def fetch_nomination congress, nomination_id
-    url = "https://api.propublica.org/congress/v1/#{congress}/nominees/#{nomination_id}.json"
-    pp url
-    begin
-        return fetch_json(url)['results'][0]
-    rescue
-        return nil
-    end
-end
+# def fetch_nomination congress, nomination_id
+#     url = "https://api.propublica.org/congress/v1/#{congress}/nominees/#{nomination_id}.json"
+#     pp url
+#     begin
+#         return fetch_json(url)['results'][0]
+#     rescue
+#         return nil
+#     end
+# end
 
-for v in Vote.all do
-    if v.votable_type == 'Bill' && v.votable_id.match?(/quorum|adjourn/i)== false
-        h = fetch_bill(v.congress, v.votable_id)
-        create_instance(Bill, h) unless Bill.find_by(id: v.votable_id) if h
-    elsif v.votable_type == 'Nomination'
-        h = fetch_nomination(v.congress, v.votable_id)
-        if h
-            create_instance(Nomination, h) unless Nomination.find_by(id: v.votable_id)
-        end
-    end
-end
+# for v in Vote.all do
+#     if v.votable_type == 'Bill' && v.votable_id.match?(/quorum|adjourn/i)== false
+#         h = fetch_bill(v.congress, v.votable_id)
+#         create_instance(Bill, h) unless Bill.find_by(id: v.votable_id) if h
+#     elsif v.votable_type == 'Nomination'
+#         h = fetch_nomination(v.congress, v.votable_id)
+#         if h
+#             create_instance(Nomination, h) unless Nomination.find_by(id: v.votable_id)
+#         end
+#     end
+# end
 
-puts 'Seeding subjects...'
-def fetch_subjects bill_id
-    bill_slug, congress = *bill_id.split('-')
-    url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_slug}/subjects.json"
-    result = fetch_json(url)
-    # return [] if result['num_results'].to_i == 0
-    # puts result['results']['subjects']
-    result['results'][0]['subjects']
-end
+# puts 'Seeding subjects...'
+# def fetch_subjects bill_id
+#     bill_slug, congress = *bill_id.split('-')
+#     url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_slug}/subjects.json"
+#     result = fetch_json(url)
+#     # return [] if result['num_results'].to_i == 0
+#     # puts result['results']['subjects']
+#     result['results'][0]['subjects']
+# end
 
-for b in Bill.all do
-    fetch_subjects(b.id).each do |h|
-        if h
-            subject = Subject.find_or_create_by(name: h["name"], url_name: h["url_name"])
-            Tag.create(bill_id: b.id, subject_id: subject.id)
-        end
-    end
-end
+# for b in Bill.all do
+#     fetch_subjects(b.id).each do |h|
+#         if h
+#             subject = Subject.find_or_create_by(name: h["name"], url_name: h["url_name"])
+#             Tag.create(bill_id: b.id, subject_id: subject.id)
+#         end
+#     end
+# end
 
 
 # def create_vote hsh
