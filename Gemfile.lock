@@ -92,7 +92,6 @@ GEM
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
     io-console (0.6.0)
-    io-console (0.6.0-java)
     irb (1.6.4)
       reline (>= 0.3.0)
     jsonapi-renderer (0.2.2)
@@ -196,6 +195,7 @@ GEM
 
 PLATFORMS
   java
+  ruby
   x64-mingw32
   x86-mingw32
   x86-mswin32
