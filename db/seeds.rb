@@ -68,7 +68,7 @@ end
 Time.zone = "America/New_York"
 current_time_in_dc = Time.now.in_time_zone
 
-current_month = 2 #current_time_in_dc.month
+current_month = current_time_in_dc.month
 current_year = current_time_in_dc.year
 current_congress = (current_year - 1787)/2
 current_session = current_year % 2 == 1 ? 1 : 2
@@ -91,6 +91,7 @@ def fetch_positions chamber, congress, session, roll_call
     fetch_json(url)["results"]["votes"]["vote"]["positions"]
 end
 
+#for v in Vote.where("id > ?",'Senate-118-1-0004') do
 for v in Vote.all do
     positions = fetch_positions(v.chamber, v.congress, v.session, v.roll_call)
     if positions.length == 0 
