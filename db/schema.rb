@@ -20,6 +20,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_04_11_191743) do
     t.string "short_title"
     t.string "sponsor_id"
     t.string "congressdotgov_url"
+    t.string "govtrack_url"
     t.boolean "active"
     t.string "enacted"
     t.string "primary_subject"

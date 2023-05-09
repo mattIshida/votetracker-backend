@@ -10,6 +10,9 @@ namespace :refresh_data do
         current_year = current_time_in_dc.year
         current_congress = (current_year - 1787)/2
         current_session = current_year % 2 == 1 ? 1 : 2
+
+        latest_year = Position.last.updated_at.year
+        latest_month = Position.last.updated_at.month
         
         API_KEY = Rails.application.credentials.propublica[:api_key]
 
@@ -25,6 +28,14 @@ namespace :refresh_data do
         def fetch_members chamber, congress
             url = "https://api.propublica.org/congress/v1/#{congress}/#{chamber}/members.json"
             fetch_json(url)["results"].first["members"].map {|h| h.merge({"chamber" => chamber, "congress" => congress})}
+        end
+
+        def fetch_bill bill_id
+            bill_number, congress = bill_id.split('-')
+            url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_number}.json"
+            bill_data = fetch_json(url)["results"].first
+            bill_data["id"] = bill_data["bill_id"]
+            bill_data
         end
 
         def fetch_votes chamber, yyyy, mm
@@ -80,14 +91,35 @@ namespace :refresh_data do
                     end
                 end
             end
+
+            puts 'Creating/updating new bills'
+            for v in new_vote_instances.filter {|v| v.votable_type == 'Bill'}.map(&:votable_id).uniq.filter {|s| /[0-9]-/.match?(s)} do 
+                bill_data = fetch_bill(v)
+                if Bill.exists?(bill_data.id) 
+                    Bill.update(bill_data)
+                else 
+                    create_instance(Bill, bill_data)
+                end
+            end
         end
 
-        ['house', 'senate'].each do |c|
-            update_chamber( c, current_year, current_month, current_congress)
+
+        last_updated_year = Vote.last.year.to_i
+        last_updated_month = Vote.last.month.to_i
+
+        start_month = Date.new(last_updated_year, last_updated_month)
+        end_month = Date.new(current_year, current_month.to_i)
+
+        ['senate', 'house'].each do |c|
+            puts "refreshing from #{start_month} to #{end_month}"
+            while(start_month <= end_month) do 
+                update_chamber(c, start_month.year, start_month.month, (start_month.year - 1787)/2)
+                start_month += 1.month
+            end
         end
 
         # new_votes = fetch_votes('house', current_year, current_month).filter {|h| Vote.find_by(roll_call: h["roll_call"]).nil? }
-        # new_members = fetch_members('house', current_congress).filter {|h| Member.find_by(id: h["id"]).nil?}
+        # new_members = fetch_meeximbers('house', current_congress).filter {|h| Member.find_by(id: h["id"]).nil?}
         # puts(new_votes)
         # puts(new_members)
 

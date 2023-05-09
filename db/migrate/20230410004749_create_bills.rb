@@ -6,6 +6,7 @@ class CreateBills < ActiveRecord::Migration[7.0]
       t.string :short_title
       t.string :sponsor_id
       t.string :congressdotgov_url
+      t.string :govtrack_url
       t.boolean :active
       t.string :enacted
       t.string :primary_subject

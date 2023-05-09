@@ -31,6 +31,14 @@ def fetch_members chamber, congress
     fetch_json(url)["results"].first["members"].map {|h| h.merge({"chamber" => chamber, "congress" => congress})}
 end
 
+def fetch_bill bill_id
+    bill_number, congress = bill_id.split('-')
+    url = "https://api.propublica.org/congress/v1/#{congress}/bills/#{bill_number}.json"
+    bill_data = fetch_json(url)["results"].first
+    bill_data["id"] = bill_data["bill_id"]
+    bill_data
+end
+
 #fetch_members('house', 118).each {|h| create_instance(Member, h)}
 #fetch_members('house', 118).each {|h| create_instance(Member, h)}
 
@@ -69,11 +77,13 @@ Time.zone = "America/New_York"
 current_time_in_dc = Time.now.in_time_zone
 
 current_month = current_time_in_dc.month
+current_month = current_time_in_dc.month
 current_year = current_time_in_dc.year
 current_congress = (current_year - 1787)/2
 current_session = current_year % 2 == 1 ? 1 : 2
 
 ['house', 'senate'].each do |c|
+#['house'].each do |c|
     
     puts "Seeding #{c}"
     fetch_members(c, current_congress).each {|h| create_instance(Member, h)}
@@ -106,6 +116,12 @@ for v in Vote.all do
         )
         end
     end
+end
+
+for v in Vote.where(votable_type: 'Bill').pluck(:votable_id).uniq.filter {|s| /[0-9]-/.match?(s)} do 
+    puts v
+    bill_data = fetch_bill(v)
+    create_instance(Bill, bill_data)
 end
 
 
